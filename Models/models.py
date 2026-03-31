@@ -108,6 +108,110 @@ class GaussianNB:
 
         return np.array(predictions)
 
+class DecisionTree:
+    def __init__(self, max_depth=5, min_samples_split=2):
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.tree = None
+
+    def fit(self, X, y):
+        self.n_classes = len(np.unique(y))
+        self.tree = self._build_tree(X, y, depth=0)
+    
+    def predict(self, X):
+        return np.array([self._predict_row(row, self.tree) for row in X])
+    
+    # ----------------  METHODS ----------------
+    
+    def _gini(self, y):
+        counts = np.bincount(y)
+        p = counts / len(y)
+        return 1 - np.sum(p**2)
+    
+    def _best_split(self, X, y):
+        best_gini = 1
+        best_idx, best_val = None, None
+        
+        for feature_idx in range(X.shape[1]):
+            values = np.unique(X[:, feature_idx])
+            for val in values:
+                left_mask = X[:, feature_idx] <= val
+                right_mask = X[:, feature_idx] > val
+                if sum(left_mask) == 0 or sum(right_mask) == 0:
+                    continue
+                
+                gini_left = self._gini(y[left_mask])
+                gini_right = self._gini(y[right_mask])
+                gini_total = (len(y[left_mask]) * gini_left + len(y[right_mask]) * gini_right) / len(y)
+                
+                if gini_total < best_gini:
+                    best_gini = gini_total
+                    best_idx = feature_idx
+                    best_val = val
+        return best_idx, best_val
+    
+    def _build_tree(self, X, y, depth):
+        if depth >= self.max_depth or len(y) < self.min_samples_split or len(np.unique(y)) == 1:
+            return np.bincount(y).argmax()  # leaf node
+        
+        feature_idx, threshold = self._best_split(X, y)
+        if feature_idx is None:
+            return np.bincount(y).argmax()
+        
+        left_mask = X[:, feature_idx] <= threshold
+        right_mask = X[:, feature_idx] > threshold
+        
+        return {
+            'feature': feature_idx,
+            'threshold': threshold,
+            'left': self._build_tree(X[left_mask], y[left_mask], depth + 1),
+            'right': self._build_tree(X[right_mask], y[right_mask], depth + 1)
+        }
+    
+    def _predict_row(self, row, node):
+        if isinstance(node, dict):
+            if row[node['feature']] <= node['threshold']:
+                return self._predict_row(row, node['left'])
+            else:
+                return self._predict_row(row, node['right'])
+        return node
+
+class RandomForest:
+    def __init__(self, n_trees=10, max_depth=5, min_samples_split=2, max_features=None):
+        self.n_trees = n_trees
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.max_features = max_features
+        self.trees = []
+    
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        self.max_features = self.max_features or int(np.sqrt(n_features))
+        self.trees = []
+        
+        for _ in range(self.n_trees):
+            # Bootstrap sample
+            indices = np.random.choice(n_samples, n_samples, replace=True)
+            X_sample = X[indices]
+            y_sample = y[indices]
+            
+            # Random feature subset
+            feature_indices = np.random.choice(n_features, self.max_features, replace=False)
+            
+            tree = DecisionTree(max_depth=self.max_depth, min_samples_split=self.min_samples_split)
+            tree.fit(X_sample[:, feature_indices], y_sample)
+            
+            self.trees.append((tree, feature_indices))
+    
+    def predict(self, X):
+        # Collect all tree predictions
+        tree_preds = np.array([tree.predict(X[:, feat_idx]) for tree, feat_idx in self.trees])
+        # Majority vote
+        y_pred = []
+        for i in range(X.shape[0]):
+            counts = np.bincount(tree_preds[:, i])
+            y_pred.append(np.argmax(counts))
+        return np.array(y_pred)
 
 class KNearestNeighbors:
     def __init__(self, k=3, metric="euclidean", task="classification"):

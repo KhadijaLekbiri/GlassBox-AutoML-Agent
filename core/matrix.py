@@ -37,9 +37,7 @@ def normalize(col,mean,std):
     return (col - mean) / (std + 1e-8)
 
 
-def minmax_scale(X):
-    min_val = np.min(col, axis=0)
-    max_val = np.max(col, axis=0)
+def minmax_scale(col,min_val,max_val):
     return (col - min_val) / (max_val - min_val + 1e-8)
 
 

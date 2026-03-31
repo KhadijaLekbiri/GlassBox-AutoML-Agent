@@ -31,16 +31,16 @@ def solve(A, b):
 
 # ---------- NORMALIZATION ----------
 
-def normalize(X):
-    mean = np.mean(X, axis=0)
-    std = np.std(X, axis=0)
-    return (X - mean) / (std + 1e-8)
+def normalize(col,mean,std):
+    mean = np.mean(col, axis=0)
+    std = np.std(col, axis=0)
+    return (col - mean) / (std + 1e-8)
 
 
 def minmax_scale(X):
-    min_val = np.min(X, axis=0)
-    max_val = np.max(X, axis=0)
-    return (X - min_val) / (max_val - min_val + 1e-8)
+    min_val = np.min(col, axis=0)
+    max_val = np.max(col, axis=0)
+    return (col - min_val) / (max_val - min_val + 1e-8)
 
 
 

@@ -28,7 +28,6 @@ def std(x):
     return np.sqrt(variance(x))
 
 
-
 def skewness(x):
     m = mean(x)
     s = std(x) + 1e-8

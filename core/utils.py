@@ -56,3 +56,19 @@ def detect_task(y):
     if unique_vals <= 10:
         return "classification"
     return "regression"
+
+def detect_column_types(self, X):
+        """
+        Detects column types: numerical, categorical, boolean
+        """
+        types = {}
+        for i in range(X.shape[1]):
+            col = X[:, i]
+            if all(isinstance(x, (int, float, np.integer, np.floating)) for x in col):
+                types[i] = "numerical"
+            elif all(isinstance(x, bool) for x in col):
+                types[i] = "boolean"
+            else:
+                types[i] = "categorical"
+        self.column_types = types
+        return types

@@ -12,7 +12,7 @@ class DataInspector:
         self.outliers = {}
 
     # ---------------- Auto-Typing ----------------
-    def _detect_types(self, X):
+    def detect_column_types(self, X):
         """
         Detects column types: numerical, categorical, boolean
         """

@@ -52,7 +52,6 @@ def softmax(z):
 
 def detect_task(y):
     unique_vals = len(np.unique(y))
-
     if unique_vals <= 10:
         return "classification"
     return "regression"

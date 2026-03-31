@@ -1,5 +1,7 @@
 import numpy as np
 
+from core.utils import detect_column_types
+
 class SimpleImputer:
     def __init__(self, strategy='mean'): # default one is mean
         self.strategy = strategy

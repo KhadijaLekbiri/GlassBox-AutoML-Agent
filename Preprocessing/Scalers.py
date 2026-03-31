@@ -1,4 +1,6 @@
 import numpy as np
+from core.matrix import minmax_scale, normalize
+from core.utils import detect_column_types
 
 class MinMaxScaler:
     def fit(self, X):
@@ -19,7 +21,7 @@ class MinMaxScaler:
         for i in range(X.shape[1]):
             col = X[:, i]
             if column_types[i] == 'numerical':
-                X_scaled[:, i] = (col - self.min_[i]) / (self.max_[i] - self.min_[i]) if self.max_[i] != self.min_[i] else 0
+                X_scaled[:, i] = minmax_scale(col,self.min_[i],self.max_[i])
         return X_scaled
 
     
@@ -46,7 +48,7 @@ class StandardScaler:
         for i in range(X.shape[1]):
             col = X_scaled[:, i]
             if column_types[i] == 'numerical':
-                X_scaled[:, i] = (col - self.mean_[i]) / self.std_[i] if self.std_[i] != 0 else 0
+                X_scaled[:, i] = normalize(col, self.mean_[i], self.std_[i])
         return X_scaled
 
     

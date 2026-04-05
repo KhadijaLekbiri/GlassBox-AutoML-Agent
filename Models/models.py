@@ -2,6 +2,9 @@ from core.stats import mean
 from core.utils import sigmoid
 import numpy as np
 
+# ─────────────────────────────────────────────────────────
+# Linear Regression
+# ─────────────────────────────────────────────────────────
 
 class LinearRegression:
     def __init__(self, lr=0.01, epochs=1000):
@@ -12,12 +15,13 @@ class LinearRegression:
 
     
     def fit(self,X,y):
+        X, y = X.astype(float), y.astype(float)
         n, features = X.shape
         self.w = np.zeros(features)
         self.b = 0
 
         for epoch in range(self.epochs):
-            y_pred = X@self.w + self.b
+            y_pred = X @ self.w + self.b
             error = y_pred - y
 
             dw = 2/n* X.T @error
@@ -27,13 +31,21 @@ class LinearRegression:
             self.b -= self.lr*db
 
     def predict(self, X):
-        y_pred = X @ self.w + self.b
-        return y_pred
-    
+        return X.astype(float) @ self.w + self.b
+
+    @property
+    def feature_importances_(self):
+        if self.w is None: return None
+        a = np.abs(self.w)
+        return a / (a.sum() + 1e-10)
+        
     def score(self, X, y, sample_weight=None):
-        y_pred = self.predict(X)
+        y, y_pred = y.astype(float), self.predict(X)
         return 1 - ((y - y_pred)** 2).sum() / ((y - y.mean()) ** 2).sum()
 
+# ─────────────────────────────────────────────────────────
+# Logistic Regression
+# ─────────────────────────────────────────────────────────
 
 class LogisticRegression:
     def __init__(self, lr=0.01, epochs=1000):
@@ -61,11 +73,20 @@ class LogisticRegression:
     def predict(self, X):
         y_pred = sigmoid(X @ self.w + self.b)
         return (y_pred >= 0.5).astype(int)
-    
+        
+    @property
+    def feature_importances_(self):
+        if self.w is None: return None
+        a = np.abs(self.w)
+        return a / (a.sum() + 1e-10)
+        
     def score(self, X, y, sample_weight=None):
         y_pred = self.predict(X)
         return mean(y_pred == y)
 
+# ─────────────────────────────────────────────────────────
+# Gaussian Naive Bayes
+# ─────────────────────────────────────────────────────────
 
 class GaussianNB:
     def __init__(self, prior = None,var_smoothing=1e-09):
@@ -76,6 +97,7 @@ class GaussianNB:
         self.var_smoothing = var_smoothing
 
     def fit(self,X,y):
+        X, y = X.astype(float), y.astype(int)
         n_samples, n_features = X.shape
         self.classes = np.unique(y)
         n_classes =  len(self.classes)

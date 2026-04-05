@@ -10,7 +10,7 @@ class Preprocessor:
         self.encoders = {}          
         self.feature_names_out = []
 
-   def fit_transform(self, X, y, feature_names=None):
+    def fit_transform(self, X, y, feature_names=None):
         """
         Parameters
         ----------

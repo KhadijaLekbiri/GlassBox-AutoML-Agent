@@ -59,18 +59,21 @@ def detect_task(y):
         return "classification"
     return "regression"
 
-def detect_column_types(self, X):
-        """
-        Detects column types: numerical, categorical, boolean
-        """
-        types = {}
-        for i in range(X.shape[1]):
-            col = X[:, i]
-            if all(isinstance(x, (int, float, np.integer, np.floating)) for x in col):
+def detect_column_types(X):
+    """
+    Returns dict {col_index: 'numerical' | 'categorical' | 'boolean'}.
+    """
+    types = {}
+    for i in range(X.shape[1]):
+        col = X[:, i]
+        if col.dtype == bool or all(isinstance(x, bool) for x in col):
+            types[i] = "boolean"
+        elif col.dtype.kind in ("i", "u", "f"):
+            types[i] = "numerical"
+        else:
+            try:
+                col.astype(float)
                 types[i] = "numerical"
-            elif all(isinstance(x, bool) for x in col):
-                types[i] = "boolean"
-            else:
+            except (ValueError, TypeError):
                 types[i] = "categorical"
-        self.column_types = types
-        return types
+    return types

@@ -8,8 +8,7 @@ class SimpleImputer:
         self.statistics_ = {}
 
     def _numpy_mode(self, col):
-        column_no_nan = col[col != ''] if col.dtype.type == np.str_ else col[~np.isnan(col)]
-
+        col_clean = col[col != ""] if col.dtype.kind in ("U", "S", "O") else col[~np.isnan(col.astype(float))]
         values, count = np.unique(column_no_nan, return_counts=True)
         return values[np.argmax(count)]
         
@@ -18,32 +17,40 @@ class SimpleImputer:
         X         : 2D NumPy array
         col_types : list of 'numerical' or 'categorical' per column
         """
+        column_types = detect_column_types(X)
         for i in range(X.shape[1]):
             col = X[:, i]
-            column_types = detect_column_types(X)
             if column_types[i] == 'numerical':
+                col_f = col.astype(float)
                 if self.strategy == 'mean':
-                    self.statistics_[i] = np.nanmean(col)
+                    self.statistics_[i] = np.nanmean(col_f)
                 elif self.strategy == 'median':
-                    self.statistics_[i] = np.nanmedian(col)
+                    self.statistics_[i] = np.nanmedian(col_f)
                 else:
-                    raise ValueError("Invalid strategy for numerical values. Use 'mean', 'median'.")
+                    self.statistics_[i] = self._numpy_mode(col_f)
             else:
                 self.statistics_[i] = self._numpy_mode(col)
+        return self
 
     def transform(self, X):
-        X_imputed = X.copy()
+        X_imputed = X.copy().astype(object)
         column_types = detect_column_types(X)
         for i, value in self.statistics_.items():
             col = X_imputed[:, i]
             if column_types[i] == 'numerical':
-                col[np.isnan(col)] = value
+                for j, v in enumerate(col):
+                    try:
+                        if np.isnan(float(v)):
+                            col[j] = value
+                    except (ValueError, TypeError):
+                        col[j] = value
             else:
                 col[col == ''] = value
+            X_imputed[:, i] = col
         return X_imputed
     
-    def fit_transform(self, X, col_types):
-        self.fit(X, col_types)
+    def fit_transform(self, X):
+        self.fit(X)
         return self.transform(X)
 
   

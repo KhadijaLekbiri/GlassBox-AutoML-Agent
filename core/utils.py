@@ -47,8 +47,11 @@ def sigmoid(z):
     return 1 / (1 + np.exp(-z))
 
 def softmax(z):
-    exp = np.exp(z - np.max(z))
-    return exp / np.sum(exp, axis=1, keepdims=True)
+    exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))
+    return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+def one_hot(y, num_classes):
+    return np.eye(num_classes)[y.astype(int)]
 
 def detect_task(y):
     unique_vals = len(np.unique(y))

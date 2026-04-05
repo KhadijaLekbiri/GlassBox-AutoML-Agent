@@ -1,3 +1,5 @@
+from core.stats import mean
+from core.utils import sigmoid
 import numpy as np
 
 
@@ -40,8 +42,6 @@ class LogisticRegression:
         self.w = None
         self.b = 0
     
-    def sigmoid(self, z):
-        return 1/(1+ np.exp(-z))
     
     def fit(self,X,y):
         n, features = X.shape
@@ -49,7 +49,7 @@ class LogisticRegression:
         self.b = 0
 
         for epoch in range(self.epochs):
-            y_pred = self.sigmoid(X@self.w + self.b)
+            y_pred = sigmoid(X@self.w + self.b)
             error = y_pred - y
 
             dw = 1/n* X.T @error
@@ -59,12 +59,12 @@ class LogisticRegression:
             self.b -= self.lr*db
 
     def predict(self, X):
-        y_pred = self.sigmoid(X @ self.w + self.b)
+        y_pred = sigmoid(X @ self.w + self.b)
         return (y_pred >= 0.5).astype(int)
     
     def score(self, X, y, sample_weight=None):
         y_pred = self.predict(X)
-        return np.mean(y_pred == y)
+        return mean(y_pred == y)
 
 
 class GaussianNB:
@@ -87,7 +87,7 @@ class GaussianNB:
         for idx, c in enumerate(self.classes):
             X_c = X[y==c]
             self.prior[idx] = len(X_c)/ len(X)
-            self.mean[idx, :] = np.mean(X_c, axis=0)
+            self.mean[idx, :] = mean(X_c, axis=0)
             self.var[idx, :] = np.var(X_c, axis=0) + self.var_smoothing 
         
     def _log_gaussian(self, x, mean, var):
@@ -262,7 +262,7 @@ class KNearestNeighbors:
             labels, counts = np.unique(k_labels, return_counts=True)
             return labels[np.argmax(counts)]
         else:
-            return np.mean(k_labels)
+            return mean(k_labels)
         
     def predict(self, X):
         return np.array([self._predict_one(x) for x in X])
@@ -276,6 +276,6 @@ class KNearestNeighbors:
         y_pred = self.predict(X)
 
         if self.task == "classification":
-            return np.mean(y_pred == y)                      # accuracy
+            return mean(y_pred == y)                      # accuracy
         else:
             return 1 - ((y - y_pred) ** 2).sum() / ((y - y.mean()) ** 2).sum()  # R²

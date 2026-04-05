@@ -1,60 +1,85 @@
 import numpy as np
+from Preprocessing.Imputers  import SimpleImputer
+from Preprocessing.Scalers   import StandardScaler
+from Preprocessing.Encoders  import LabelEncoder, OneHotEncoder
 
 class Preprocessor:
-    def __init__(self, imputer=None, encoders=None, scaler=None):
+    def __init__(self, scaler="standard", imputer_strategy="mean"):
+        self.imputer  = SimpleImputer(strategy=imputer_strategy)
+        self.scaler   = StandardScaler() if scaler == "standard" else None
+        self.encoders = {}          
+        self.feature_names_out = []
+
+   def fit_transform(self, X, y, feature_names=None):
         """
-        imputer  : instance of your SimpleImputer
-        encoders : dict {column_index: Encoding instance}
-        scaler   : instance of your StandardScaler or MinMaxScaler
+        Parameters
+        ----------
+        X             : raw 2-D NumPy array (may contain strings / NaNs)
+        y             : 1-D target array
+        feature_names : list of column names (optional)
+
+        Returns
+        -------
+        X_out         : clean float NumPy array
+        y_out         : float/int NumPy array
+        names_out     : list of output feature names
         """
-        self.imputer_ = imputer
-        self.encoders_ = encoders or {}
-        self.scaler_ = scaler
+        n_cols = X.shape[1]
+        if feature_names is None:
+            feature_names = [f"col_{i}" for i in range(n_cols)]
 
-    def fit(self, X):
-        if self.imputer_:
-            X = self.imputer_.fit(X)
+        # 1 — impute missing values
+        X = self.imputer.fit_transform(X)
 
-        encoded_cols = []
-        for i in range(X.shape[1]):
-            col = X[:, i]
-            if i in self.encoders_:
-                encoder = self.encoders_[i]
-                col_encoded = encoder.fit_transform(col)
-                if col_encoded.ndim == 1:
-                    col_encoded = col_encoded.reshape(-1, 1)
-                encoded_cols.append(col_encoded)
-            else:
-                encoded_cols.append(col.reshape(-1, 1))
-        X = np.hstack(encoded_cols)
+        col_types = detect_column_types(X)
 
-        if self.scaler_:
-            self.scaler_.fit(X)
+        out_cols   = []
+        names_out  = []
 
-        return self
+        for i in range(n_cols):
+            col  = X[:, i]
+            name = feature_names[i]
 
-    def transform(self, X):
-        if self.imputer_:
-            X = self.imputer_.transform(X)
+            if col_types[i] == "numerical":
+                out_cols.append(col.astype(float).reshape(-1, 1))
+                names_out.append(name)
 
-        encoded_cols = []
-        for i in range(X.shape[1]):
-            col = X[:, i]
-            if i in self.encoders_:
-                col_encoded = self.encoders_[i].transform(col)
-                if col_encoded.ndim == 1:
-                    col_encoded = col_encoded.reshape(-1, 1)
-                encoded_cols.append(col_encoded)
-            else:
-                encoded_cols.append(col.reshape(-1, 1))
-        X = np.hstack(encoded_cols)
+            elif col_types[i] == "boolean":
+                out_cols.append(col.astype(float).reshape(-1, 1))
+                names_out.append(name)
 
-        if self.scaler_:
-            X = self.scaler_.transform(X)
+            elif col_types[i] == "categorical":
+                unique_vals = np.unique(col[col != ""])
+                if len(unique_vals) <= 2:
+                    # binary → label encode
+                    enc = LabelEncoder()
+                    enc.fit(col)
+                    out_cols.append(enc.transform(col).astype(float).reshape(-1, 1))
+                    names_out.append(name)
+                    self.encoders[i] = enc
+                else:
+                    # nominal → one-hot
+                    enc = OneHotEncoder()
+                    enc.fit(col)
+                    ohe = enc.transform(col).astype(float)
+                    out_cols.append(ohe)
+                    names_out.extend([f"{name}_{cat}" for cat in enc.categories_])
+                    self.encoders[i] = enc
 
-        return X
+        X_out = np.hstack(out_cols).astype(float)
 
-    def fit_transform(self, X):
-        self.fit(X)
-        return self.transform(X)
-    
+        # 4 — scale numerical columns
+        if self.scaler:
+            X_out = self.scaler.fit_transform(X_out)
+        y_out = self._clean_y(y)
+
+        self.feature_names_out = names_out
+        return X_out, y_out, names_out
+       
+    def _clean_y(self, y):
+        try:
+            return y.astype(float)
+        except (ValueError, AttributeError):
+            enc = LabelEncoder()
+            enc.fit(y)
+            return enc.transform(y).astype(float)

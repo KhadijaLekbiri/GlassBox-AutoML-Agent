@@ -237,9 +237,12 @@ class RandomForest:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.max_features = max_features
+        self.task = task
         self.trees = []
     
     def fit(self, X, y):
+        X = X.astype(float)
+        y = y.astype(int) if self.task == "classification" else y.astype(float)
         n_samples, n_features = X.shape
         self.max_features = self.max_features or int(np.sqrt(n_features))
         self.trees = []
@@ -259,6 +262,7 @@ class RandomForest:
             self.trees.append((tree, feature_indices))
     
     def predict(self, X):
+        X = X.astype(float)
         # Collect all tree predictions
         tree_preds = np.array([tree.predict(X[:, feat_idx]) for tree, feat_idx in self.trees])
         # Majority vote
@@ -268,6 +272,24 @@ class RandomForest:
             y_pred.append(np.argmax(counts))
         return np.array(y_pred)
 
+    @property
+    def feature_importances_(self):
+        if not self.trees:
+            return None
+        # average importances across trees (mapped back to full feature space)
+        n_feat = max(max(fi) for _, fi in self.trees) + 1
+        imp    = np.zeros(n_feat)
+        for tree, fi in self.trees:
+            if tree.feature_importances_ is not None:
+                for local_i, global_i in enumerate(fi):
+                    if local_i < len(tree.feature_importances_):
+                        imp[global_i] += tree.feature_importances_[local_i]
+        s = imp.sum()
+        return imp / s if s > 0 else imp
+
+# ─────────────────────────────────────────────────────────
+# K-Nearest Neighbors
+# ─────────────────────────────────────────────────────────
 class KNearestNeighbors:
     def __init__(self, k=3, metric="euclidean", task="classification"):
         if metric not in ("euclidean", "manhattan"):

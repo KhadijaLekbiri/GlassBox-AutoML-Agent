@@ -9,7 +9,7 @@ class SimpleImputer:
 
     def _numpy_mode(self, col):
         col_clean = col[col != ""] if col.dtype.kind in ("U", "S", "O") else col[~np.isnan(col.astype(float))]
-        values, count = np.unique(column_no_nan, return_counts=True)
+        values, count = np.unique(col_clean, return_counts=True)
         return values[np.argmax(count)]
         
     def fit(self, X):

@@ -130,26 +130,49 @@ class GaussianNB:
 
         return np.array(predictions)
 
+# ─────────────────────────────────────────────────────────
+# Decision Tree  (classification AND regression)
+# ─────────────────────────────────────────────────────────
 class DecisionTree:
     def __init__(self, max_depth=5, min_samples_split=2):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.tree = None
+        self.task = None
+        self._importances = None
 
     def fit(self, X, y):
-        self.n_classes = len(np.unique(y))
-        self.tree = self._build_tree(X, y, depth=0)
+        X = X.astype(float)
+        y = y.astype(int) if self.task == "classification" else y.astype(float)
+        self._n_features  = X.shape[1]
+        self._importances = np.zeros(self._n_features)
+        self.tree = self._build(X, y, 0)
+        s = self._importances.sum()
+        if s > 0:
+            self._importances /= s
     
     def predict(self, X):
-        return np.array([self._predict_row(row, self.tree) for row in X])
-    
+        return np.array([self._predict_row(row, self.tree) for row in X.astype(float)])
+
+    @property
+    def feature_importances_(self):
+        return self._importances
+        
     # ----------------  METHODS ----------------
     
     def _gini(self, y):
-        counts = np.bincount(y)
-        p = counts / len(y)
-        return 1 - np.sum(p**2)
-    
+        if self.task == "classification":
+            counts = np.bincount(y.astype(int))
+            p = counts / len(y)
+            return 1 - np.sum(p**2)       
+        else:
+            return np.var(y)
+
+    def _leaf(self, y):
+        if self.task == "classification":
+            return int(np.bincount(y.astype(int)).argmax())
+        return float(np.mean(y))
+        
     def _best_split(self, X, y):
         best_gini = 1
         best_idx, best_val = None, None
@@ -174,14 +197,20 @@ class DecisionTree:
     
     def _build_tree(self, X, y, depth):
         if depth >= self.max_depth or len(y) < self.min_samples_split or len(np.unique(y)) == 1:
-            return np.bincount(y).argmax()  # leaf node
+            return self._leaf(y)
         
         feature_idx, threshold = self._best_split(X, y)
         if feature_idx is None:
-            return np.bincount(y).argmax()
+            return self._leaf(y)
         
         left_mask = X[:, feature_idx] <= threshold
         right_mask = X[:, feature_idx] > threshold
+
+        gain = self._gini(y) - (
+            left_mask.sum() * self._gini(y[left_mask]) +
+            right_mask.sum() * self._gini(y[right_mask])
+        ) / len(y)
+        self._importances[feature_idx] += gain * len(y)
         
         return {
             'feature': feature_idx,
@@ -198,8 +227,12 @@ class DecisionTree:
                 return self._predict_row(row, node['right'])
         return node
 
+# ─────────────────────────────────────────────────────────
+# Random Forest  (classification AND regression)
+# ─────────────────────────────────────────────────────────
+
 class RandomForest:
-    def __init__(self, n_trees=10, max_depth=5, min_samples_split=2, max_features=None):
+    def __init__(self, n_trees=10, max_depth=5, min_samples_split=2, max_features=None, task="classification"):
         self.n_trees = n_trees
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split

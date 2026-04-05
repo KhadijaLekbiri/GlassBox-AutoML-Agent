@@ -1,49 +1,49 @@
 import numpy as np
-
 from core.utils import detect_column_types
 
 class SimpleImputer:
-    def __init__(self, strategy='mean'): # default one is mean
-        self.strategy = strategy
+    def __init__(self, strategy="mean"):
+        self.strategy    = strategy
         self.statistics_ = {}
 
-    def _numpy_mode(self, col):
-        column_no_nan = col[col != ''] if col.dtype.type == np.str_ else col[~np.isnan(col)]
+    def _mode(self, col):
+        col_clean = col[col != ""] if col.dtype.kind in ("U", "S", "O") else col[~np.isnan(col.astype(float))]
+        values, counts = np.unique(col_clean, return_counts=True)
+        return values[np.argmax(counts)]
 
-        values, count = np.unique(column_no_nan, return_counts=True)
-        return values[np.argmax(count)]
-        
     def fit(self, X):
-        """
-        X         : 2D NumPy array
-        col_types : list of 'numerical' or 'categorical' per column
-        """
+        column_types = detect_column_types(X)
         for i in range(X.shape[1]):
             col = X[:, i]
-            column_types = detect_column_types(X)
-            if column_types[i] == 'numerical':
-                if self.strategy == 'mean':
-                    self.statistics_[i] = np.nanmean(col)
-                elif self.strategy == 'median':
-                    self.statistics_[i] = np.nanmedian(col)
+            if column_types[i] == "numerical":
+                col_f = col.astype(float)
+                if self.strategy == "mean":
+                    self.statistics_[i] = np.nanmean(col_f)
+                elif self.strategy == "median":
+                    self.statistics_[i] = np.nanmedian(col_f)
                 else:
-                    raise ValueError("Invalid strategy for numerical values. Use 'mean', 'median'.")
+                    self.statistics_[i] = self._mode(col_f)
             else:
-                self.statistics_[i] = self._numpy_mode(col)
+                self.statistics_[i] = self._mode(col)
+        return self
 
     def transform(self, X):
-        X_imputed = X.copy()
+        X_out = X.copy().astype(object)
         column_types = detect_column_types(X)
-        for i, value in self.statistics_.items():
-            col = X_imputed[:, i]
-            if column_types[i] == 'numerical':
-                col[np.isnan(col)] = value
+        for i, fill in self.statistics_.items():
+            col = X_out[:, i]
+            if column_types[i] == "numerical":
+                for j, v in enumerate(col):
+                    try:
+                        if np.isnan(float(v)):
+                            col[j] = fill
+                    except (ValueError, TypeError):
+                        col[j] = fill
             else:
-                col[col == ''] = value
-        return X_imputed
-    
-    def fit_transform(self, X, col_types):
-        self.fit(X, col_types)
-        return self.transform(X)
+                col[col == ""] = fill
+            X_out[:, i] = col
+        return X_out
 
-  
+    def fit_transform(self, X):
+        self.fit(X)
+        return self.transform(X)

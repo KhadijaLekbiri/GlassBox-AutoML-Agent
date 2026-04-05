@@ -1,0 +1,8 @@
+# GlassBox-AutoML — only dependency for the core
+numpy>=1.26.0
+
+# Phase 5 — MCP server (to expose as IronClaw tool)
+mcp>=1.0.0
+
+# Phase 5 — benchmark comparison only (never import inside core)
+scikit-learn>=1.4.0

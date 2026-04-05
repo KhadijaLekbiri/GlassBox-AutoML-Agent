@@ -1,22 +1,20 @@
+import numpy as np
 from core.utils import detect_task
+from core.metrics import accuracy, f1_score, mse, mae, r2_score
+
 def evaluate_model(model, X, y, kf, metric=None):
     """
-    Evaluates a model using K-Fold CV.
-    If metric is None, it will auto-detect classification vs regression.
+    Evaluate a model with K-Fold CV.
+    metric: callable(y_true, y_pred) -> float, or None for auto-detect.
     """
-    # Detect task type if metric is not provided
     if metric is None:
         task = detect_task(y)
-        if task == "classification":
-            metric = f1_score
-        else:
-            metric = mse
+        metric = accuracy if task == "classification" else mse
 
     scores = []
     for train_idx, test_idx in kf.get_splits(X):
         model.fit(X[train_idx], y[train_idx])
         preds = model.predict(X[test_idx])
-        score = metric(y[test_idx], preds)
-        scores.append(score)
+        scores.append(metric(y[test_idx], preds))
 
-    return np.mean(scores)
+    return float(np.mean(scores))

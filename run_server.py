@@ -1,7 +1,7 @@
 import sys
 import os
 
-PROJECT_DIR = os.getcwd()
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_DIR)
 os.chdir(PROJECT_DIR)
 

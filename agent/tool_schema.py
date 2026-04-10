@@ -129,7 +129,7 @@ def _run_mcp_server():
         if name != "AutoFit":
             raise ValueError(f"Unknown tool: {name}")
         import os
-        PROJECT_DIR = os.getcwd()
+        PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
         os.chdir(PROJECT_DIR)
         csv_path = arguments.get("csv_path", "")
         arguments["csv_path"] = os.path.join(PROJECT_DIR, os.path.basename(csv_path))

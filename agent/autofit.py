@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from core.utils     import detect_task
-from core.metrics   import accuracy, f1_score, mse, mae, precision, r2_score
+from core.metrics   import accuracy, f1_score, mse, mae, precision, r2_score, recall
 
 from eda.inspector               import DataInspector
 from Preprocessing.preprocessor  import Preprocessor
@@ -95,7 +95,7 @@ def _evaluate(model, X, y, kf, task):
                 "accuracy": float(accuracy(y_t.astype(int), preds.astype(int))),
                 "f1":       float(f1_score(y_t.astype(int), preds.astype(int))),
                 "precision": float(precision(y_t.astype(int), preds.astype(int))),
-                "recall":    float(precision(y_t.astype(int), preds.astype(int)))
+                "recall":    float(recall(y_t.astype(int), preds.astype(int)))
             })
         else:
             fold_results.append({

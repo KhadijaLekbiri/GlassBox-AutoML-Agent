@@ -1,7 +1,7 @@
 import sys
 import os
 
-PROJECT_DIR = r"C:\Users\HP\Downloads\GlassBox-AutoML-Phase5\GlassBox-AutoML-Phase5"
+PROJECT_DIR = os.getcwd()
 sys.path.insert(0, PROJECT_DIR)
 os.chdir(PROJECT_DIR)
 

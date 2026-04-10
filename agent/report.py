@@ -102,7 +102,9 @@ def report_to_explanation(report: dict) -> str:
     if report["task_type"] == "classification":
         acc = mt.get("accuracy", "N/A")
         f1 = mt.get("f1", "N/A")
-        lines.append(f"It achieved {acc:.2%} accuracy and an F1-score of {f1:.4f}.")
+        recall= mt.get("recall", "N/A")
+        precision = mt.get("precision", "N/A")
+        lines.append(f"It achieved {acc:.2%} accuracy and an F1-score of {f1:.4f}, precision of {precision:.4f}, and recall of {recall:.4f}.")
     else:
         mae = mt.get("mae", "N/A")
         r2 = mt.get("r2", "N/A")

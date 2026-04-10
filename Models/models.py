@@ -146,7 +146,7 @@ class DecisionTree:
         y = y.astype(int) if self.task == "classification" else y.astype(float)
         self._n_features  = X.shape[1]
         self._importances = np.zeros(self._n_features)
-        self.tree = self._build(X, y, 0)
+        self.tree = self._build_tree(X, y, 0)
         s = self._importances.sum()
         if s > 0:
             self._importances /= s

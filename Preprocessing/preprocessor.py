@@ -2,6 +2,8 @@ import numpy as np
 from Preprocessing.Imputers  import SimpleImputer
 from Preprocessing.Scalers   import StandardScaler
 from Preprocessing.Encoders  import LabelEncoder, OneHotEncoder
+from Preprocessing.outliers import detect_outliers
+from core.utils import detect_column_types
 
 class Preprocessor:
     def __init__(self, scaler="standard", imputer_strategy="mean"):
@@ -9,7 +11,7 @@ class Preprocessor:
         self.scaler   = StandardScaler() if scaler == "standard" else None
         self.encoders = {}          
         self.feature_names_out = []
-
+    
     def fit_transform(self, X, y, feature_names=None):
         """
         Parameters
@@ -32,6 +34,8 @@ class Preprocessor:
         X = self.imputer.fit_transform(X)
 
         col_types = detect_column_types(X)
+        num_indices = [i for i, t in enumerate(col_types) if t == "numerical"]
+        X[:, num_indices] = self._handle_outliers(X[:, num_indices])
 
         out_cols   = []
         names_out  = []
@@ -67,7 +71,7 @@ class Preprocessor:
                     self.encoders[i] = enc
 
         X_out = np.hstack(out_cols).astype(float)
-
+        
         # 4 — scale numerical columns
         if self.scaler:
             X_out = self.scaler.fit_transform(X_out)
@@ -75,7 +79,21 @@ class Preprocessor:
 
         self.feature_names_out = names_out
         return X_out, y_out, names_out
-       
+    def _handle_outliers(self, X):
+        """
+        Replace outliers using IQR clipping.
+        """
+        Q1 = np.percentile(X, 25, axis=0)
+        Q3 = np.percentile(X, 75, axis=0)
+        IQR = Q3 - Q1
+
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Clip values
+        X_clipped = np.clip(X, lower_bound, upper_bound)
+
+        return X_clipped
     def _clean_y(self, y):
         try:
             return y.astype(float)

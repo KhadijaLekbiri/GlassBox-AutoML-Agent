@@ -1,4 +1,6 @@
 """
+report.py
+---------
 Builds the structured JSON report that GlassBox returns to the IronClaw agent.
 The agent uses this JSON to produce natural-language explanations to the user.
 """

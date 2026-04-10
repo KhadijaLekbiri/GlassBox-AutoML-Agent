@@ -59,22 +59,7 @@ AUTOFIT_TOOL = {
             },
         },
         "required": ["csv_path", "target_col"],
-    },
-    "outputSchema": {
-        "type": "object",
-        "description": "JSON report produced by GlassBox (see report.py for full spec).",
-        "properties": {
-            "status":           {"type": "string"},
-            "task_type":        {"type": "string"},
-            "best_model":       {"type": "string"},
-            "best_params":      {"type": "object"},
-            "metrics":          {"type": "object"},
-            "top_features":     {"type": "array"},
-            "eda_summary":      {"type": "object"},
-            "pipeline_seconds": {"type": "number"},
-            "benchmark_pass":   {"type": "boolean"},
-        },
-    },
+    }
 }
 
 
@@ -91,7 +76,7 @@ def register_with_ironclaw(agent):
 
     The agent must expose a `.register_tool(schema, handler)` method.
     """
-    from agent.autofit import autofit
+    from .autofit import autofit
 
     def _handler(csv_path: str, target_col: str,
                  task_type: str = "auto",
@@ -131,7 +116,7 @@ def _run_mcp_server():
             "MCP SDK not installed. Run: pip install mcp"
         )
 
-    from agent.autofit import autofit
+    from .autofit import autofit
 
     server = Server("glassbox-automl")
 
@@ -143,6 +128,11 @@ def _run_mcp_server():
     async def call_tool(name: str, arguments: dict):
         if name != "AutoFit":
             raise ValueError(f"Unknown tool: {name}")
+        import os
+        PROJECT_DIR = r"C:\Users\HP\Downloads\GlassBox-AutoML-Phase5\GlassBox-AutoML-Phase5"
+        os.chdir(PROJECT_DIR)
+        csv_path = arguments.get("csv_path", "")
+        arguments["csv_path"] = os.path.join(PROJECT_DIR, os.path.basename(csv_path))
         result = autofit(**arguments)
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
 

@@ -45,7 +45,7 @@ REG_MODELS = {
     "KNN_reg":          KNearestNeighbors,
 }
 
-# ── CSV loader ───────────────────────────────────────────────────
+# ── CSV loader (pure NumPy) ───────────────────────────────────────────────────
 def _load_csv(csv_path, target_col):
     with open(csv_path, "r", encoding="utf-8") as f:
         lines = [l.strip() for l in f if l.strip()]

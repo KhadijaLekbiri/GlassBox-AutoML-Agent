@@ -91,7 +91,7 @@ def register_with_ironclaw(agent):
 
     The agent must expose a `.register_tool(schema, handler)` method.
     """
-    from .autofit import autofit
+    from agent.autofit import autofit
 
     def _handler(csv_path: str, target_col: str,
                  task_type: str = "auto",
@@ -131,7 +131,7 @@ def _run_mcp_server():
             "MCP SDK not installed. Run: pip install mcp"
         )
 
-    from .autofit import autofit
+    from agent.autofit import autofit
 
     server = Server("glassbox-automl")
 

@@ -4,7 +4,10 @@ from core.utils import detect_column_types
 
 class DataInspector:
     """
-    Automated EDA
+    Automated EDA — wraps core/stats.py functions.
+    Usage:
+        inspector = DataInspector()
+        profile   = inspector.fit(X, feature_names)
     """
 
     def __init__(self):
@@ -17,7 +20,7 @@ class DataInspector:
         Parameters
         ----------
         X             : 2-D NumPy float array  (n_samples, n_features)
-        feature_names : list of column name strings 
+        feature_names : list of column name strings (optional)
 
         Returns
         -------

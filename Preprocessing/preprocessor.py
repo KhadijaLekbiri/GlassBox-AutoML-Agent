@@ -1,17 +1,26 @@
 import numpy as np
+from core.utils import detect_column_types
 from Preprocessing.Imputers  import SimpleImputer
 from Preprocessing.Scalers   import StandardScaler
 from Preprocessing.Encoders  import LabelEncoder, OneHotEncoder
-from Preprocessing.outliers import detect_outliers
-from core.utils import detect_column_types
 
 class Preprocessor:
+    """
+    Full preprocessing pipeline.
+
+    Usage
+    -----
+    prep = Preprocessor()
+    X_clean, y, feature_names = prep.fit_transform(raw_X, raw_y, col_names)
+    """
+
     def __init__(self, scaler="standard", imputer_strategy="mean"):
         self.imputer  = SimpleImputer(strategy=imputer_strategy)
         self.scaler   = StandardScaler() if scaler == "standard" else None
-        self.encoders = {}          
+        self.encoders = {}           # {col_idx: fitted encoder}
         self.feature_names_out = []
-    
+
+    # ------------------------------------------------------------------
     def fit_transform(self, X, y, feature_names=None):
         """
         Parameters
@@ -33,10 +42,10 @@ class Preprocessor:
         # 1 — impute missing values
         X = self.imputer.fit_transform(X)
 
+        # 2 — detect types on imputed data
         col_types = detect_column_types(X)
-        num_indices = [i for i, t in enumerate(col_types) if t == "numerical"]
-        X[:, num_indices] = self._handle_outliers(X[:, num_indices])
 
+        # 3 — encode categoricals + build output columns
         out_cols   = []
         names_out  = []
 
@@ -71,29 +80,18 @@ class Preprocessor:
                     self.encoders[i] = enc
 
         X_out = np.hstack(out_cols).astype(float)
-        
+
         # 4 — scale numerical columns
         if self.scaler:
             X_out = self.scaler.fit_transform(X_out)
+
+        # 5 — clean y
         y_out = self._clean_y(y)
 
         self.feature_names_out = names_out
         return X_out, y_out, names_out
-    def _handle_outliers(self, X):
-        """
-        Replace outliers using IQR clipping.
-        """
-        Q1 = np.percentile(X, 25, axis=0)
-        Q3 = np.percentile(X, 75, axis=0)
-        IQR = Q3 - Q1
 
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
-
-        # Clip values
-        X_clipped = np.clip(X, lower_bound, upper_bound)
-
-        return X_clipped
+    # ------------------------------------------------------------------
     def _clean_y(self, y):
         try:
             return y.astype(float)

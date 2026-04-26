@@ -1,8 +1,8 @@
 # Team : 
-Hiba Ouhmad
-Ghita Bellamine
-Khadija Lekbiri
-Rhita Rhallami 
+- Hiba Ouhmad
+- Ghita Bellamine
+- Khadija Lekbiri
+- Rhita Rhallami 
 
 # 🧠 GlassBox AutoML Agent
 

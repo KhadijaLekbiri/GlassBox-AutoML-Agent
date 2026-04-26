@@ -1,0 +1,78 @@
+{
+    "status": "success",
+    "task_type": "regression",
+    "best_model": "LinearRegression",
+    "best_params": {
+        "lr": 0.1,
+        "epochs": 200
+    },
+    "metrics": {
+        "mae": 502.37480612022983,
+        "mse": 304106.3651788961,
+        "r2": -6.573707072889843
+    },
+    "top_features": [
+        {
+            "feature": "Pclass",
+            "importance": 0.0028
+        },
+        {
+            "feature": "Name_\"Harris",
+            "importance": 0.0026
+        },
+        {
+            "feature": "Embarked_B96 B98",
+            "importance": 0.0025
+        },
+        {
+            "feature": "Name_\"Ali",
+            "importance": 0.0023
+        },
+        {
+            "feature": "Sex_ Miss. Robina Maggie \"\"Ruby\"\"\"",
+            "importance": 0.0023
+        },
+        {
+            "feature": "Name_\"Webber",
+            "importance": 0.0022
+        },
+        {
+            "feature": "Name_\"Mellors",
+            "importance": 0.0021
+        },
+        {
+            "feature": "Name_\"Sage",
+            "importance": 0.002
+        },
+        {
+            "feature": "Sex_ Mr. Charles Henry\"",
+            "importance": 0.0019
+        },
+        {
+            "feature": "Name_\"Hart",
+            "importance": 0.0019
+        }
+    ],
+    "eda_summary": {
+        "n_rows": 891,
+        "n_cols": 11,
+        "outliers_flagged": 375,
+        "missing_filled": 3741,
+        "numeric_cols": [
+            "PassengerId",
+            "Survived",
+            "Pclass",
+            "Name",
+            "Sex",
+            "Age",
+            "SibSp",
+            "Parch",
+            "Ticket",
+            "Cabin",
+            "Embarked"
+        ],
+        "categorical_cols": []
+    },
+    "pipeline_seconds": 47.93,
+    "benchmark_pass": true
+}

@@ -177,4 +177,11 @@ def autofit(csv_path, target_col, task_type="auto",
         elapsed_seconds = elapsed,
     )
     _log(f"[GlassBox] Done in {elapsed:.1f}s — best: {best_name} | score: {best_score:.4f}")
+                
+    output_path = "autofit_report.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=4)
+
+    _log(f"[GlassBox] Report saved to {output_path}")
+                
     return report

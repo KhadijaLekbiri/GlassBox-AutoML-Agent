@@ -1,7 +1,12 @@
 """
 agent/autofit.py — master pipeline connecting all GlassBox modules.
 """
+import sys
 import time
+
+# All progress goes to stderr — stdout is reserved for MCP JSON
+def _log(msg):
+    print(msg, file=sys.stderr, flush=True)
 import numpy as np
 
 from core.utils     import detect_task
@@ -111,22 +116,22 @@ def autofit(csv_path, target_col, task_type="auto",
             time_budget=60, cv_folds=5, use_random_search=False):
     wall_start = time.time()
 
-    print("[GlassBox] Loading data...")
+    _log("[GlassBox] Loading data...")
     X_raw, y_raw, feature_names = _load_csv(csv_path, target_col)
 
-    print("[GlassBox] Running EDA...")
+    _log("[GlassBox] Running EDA...")
     inspector   = DataInspector()
     eda_profile = inspector.fit(_to_numeric(X_raw), feature_names)
 
-    print("[GlassBox] Preprocessing...")
+    _log("[GlassBox] Preprocessing...")
     prep = Preprocessor(scaler="standard", imputer_strategy="mean")
     X, y, feat_names_out = prep.fit_transform(X_raw, y_raw, feature_names)
 
     task = task_type if task_type != "auto" else detect_task(y)
-    print(f"[GlassBox] Task: {task}")
+    _log(f"[GlassBox] Task: {task}")
     y = y.astype(int) if task == "classification" else y.astype(float)
 
-    print("[GlassBox] Searching best model...")
+    _log("[GlassBox] Searching best model...")
     models       = CLF_MODELS if task == "classification" else REG_MODELS
     kf           = KFold(n_splits=cv_folds)
     best_model   = None
@@ -137,7 +142,7 @@ def autofit(csv_path, target_col, task_type="auto",
 
     for name, model_cls in models.items():
         if time.time() - search_start > time_budget:
-            print("[GlassBox] Time budget reached.")
+            _log("[GlassBox] Time budget reached.")
             break
         grid      = GRIDS.get(name, {})
         SearchCls = RandomSearch if use_random_search else GridSearch
@@ -146,7 +151,7 @@ def autofit(csv_path, target_col, task_type="auto",
                                  kf=kf, metric=None)
             searcher.fit(X, y)
         except Exception as e:
-            print(f"  [skip] {name}: {e}")
+            _log(f"  [skip] {name}: {e}")
             continue
         if searcher.best_score > best_score:
             best_score  = searcher.best_score
@@ -157,7 +162,7 @@ def autofit(csv_path, target_col, task_type="auto",
     if best_model is None:
         raise RuntimeError("All models failed. Check your data.")
 
-    print(f"[GlassBox] Evaluating {best_name}...")
+    _log(f"[GlassBox] Evaluating {best_name}...")
     metrics      = _evaluate(best_model, X, y, KFold(n_splits=cv_folds), task)
     top_features = _feature_importance(best_model, feat_names_out)
 
@@ -171,5 +176,5 @@ def autofit(csv_path, target_col, task_type="auto",
         task_type       = task,
         elapsed_seconds = elapsed,
     )
-    print(f"[GlassBox] Done in {elapsed:.1f}s — best: {best_name} | score: {best_score:.4f}")
+    _log(f"[GlassBox] Done in {elapsed:.1f}s — best: {best_name} | score: {best_score:.4f}")
     return report

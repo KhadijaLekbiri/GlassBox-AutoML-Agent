@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "GlassBox MCP server configuration for Claude Desktop.",
+    "",
+    "SETUP INSTRUCTIONS",
+    "------------------",
+    "1. Copy this file's contents into your Claude Desktop config:",
+    "     Windows : %APPDATA%\\Claude\\claude_desktop_config.json",
+    "     macOS   : ~/Library/Application Support/Claude/claude_desktop_config.json",
+    "     Linux   : ~/.config/Claude/claude_desktop_config.json",
+    "",
+    "2. Replace the two placeholder values below:",
+    "     PYTHON_EXECUTABLE  — output of:  where python   (Windows)",
+    "                                   or: which python3  (macOS/Linux)",
+    "     PROJECT_ROOT       — absolute path to this project folder",
+    "                          e.g. C:/Users/you/GlassBox-AutoML-Agent-main",
+    "                          or   /home/you/GlassBox-AutoML-Agent-main",
+    "",
+    "3. Restart Claude Desktop.",
+    "",
+    "4. In any Claude chat, say:",
+    "     'Use the GlassBox AutoFit tool with csv_path=\"titanic_dataset.csv\"",
+    "      and target_col=\"Survived\"'",
+    "",
+    "HOW IT WORKS",
+    "------------",
+    "Claude Desktop launches run_server.py as a subprocess when it starts.",
+    "The script speaks the MCP protocol over stdin/stdout.",
+    "Claude discovers the AutoFit tool automatically and can call it",
+    "whenever a user asks to build or train a model."
+  ],
+
+  "mcpServers": {
+    "glassbox": {
+      "command": "PYTHON_EXECUTABLE",
+      "args": [
+        "PROJECT_ROOT/run_server.py"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

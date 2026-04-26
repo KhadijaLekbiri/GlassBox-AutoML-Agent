@@ -1,20 +1,34 @@
+"""
+run_server.py
+-------------
+Entry point for the GlassBox MCP server.
+
+Claude Desktop (or any MCP-compatible agent) launches this script as a
+subprocess and communicates with it over stdin/stdout using the MCP protocol.
+
+Usage (Claude Desktop handles this automatically via claude_desktop_config.json):
+    python run_server.py
+
+Manual test:
+    python test_mcp_client.py
+"""
+
 import sys
 import os
+import pathlib
 
-PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, PROJECT_DIR)
-os.chdir(PROJECT_DIR)
+# ── Make sure the project root is on the Python path ─────────────────────────
+PROJECT_DIR = pathlib.Path(__file__).resolve().parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 
-import agent.autofit as _autofit_module
-from agent.autofit import autofit as _original_autofit
+# ── Set working directory to agent/ so relative CSV paths resolve correctly ───
+# Use pathlib throughout to avoid Windows Errno 22 path issues
+AGENT_DIR = PROJECT_DIR / "agent"
+os.chdir(str(AGENT_DIR))
 
-def _patched_autofit(csv_path, target_col, **kwargs):
-    filename = os.path.basename(csv_path)
-    local_path = os.path.join(PROJECT_DIR, filename)
-    print(f"[GlassBox] Resolved path: {local_path}", file=sys.stderr)
-    return _original_autofit(local_path, target_col, **kwargs)
-
-_autofit_module.autofit = _patched_autofit
-
+# ── Start the MCP server ──────────────────────────────────────────────────────
 from agent.tool_schema import _run_mcp_server
-_run_mcp_server()
+
+if __name__ == "__main__":
+    _run_mcp_server()

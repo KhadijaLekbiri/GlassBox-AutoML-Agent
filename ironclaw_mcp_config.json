@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "_comment": [
+    "IronClaw MCP server configuration for GlassBox AutoML.",
+    "",
+    "SETUP: Copy the 'servers' block into your IronClaw MCP config:",
+    "  ~/.ironclaw/mcp-servers.json",
+    "",
+    "Or register via CLI (replace the path placeholders first):",
+    "  ironclaw mcp add glassbox --transport stdio \\",
+    "    --command /path/to/python3 \\",
+    "    --arg /path/to/GlassBox-AutoML-Agent-main/run_server.py \\",
+    "    --env GLASSBOX_PROJECT_PATH=/path/to/GlassBox-AutoML-Agent-main",
+    "",
+    "Then test connectivity:",
+    "  ironclaw mcp test glassbox"
+  ],
+  "servers": [
+    {
+      "name": "glassbox",
+      "url": "",
+      "description": "GlassBox AutoML — transparent ML pipeline. Builds and evaluates models from CSV files via the AutoFit tool.",
+      "transport": {
+        "transport": "stdio",
+        "command": "PYTHON_EXECUTABLE",
+        "args": [
+          "ABSOLUTE_PATH_TO_PROJECT/run_server.py"
+        ],
+        "env": {
+          "PYTHONUNBUFFERED": "1",
+          "GLASSBOX_PROJECT_PATH": "ABSOLUTE_PATH_TO_PROJECT"
+        }
+      },
+      "enabled": true
+    }
+  ]
+}

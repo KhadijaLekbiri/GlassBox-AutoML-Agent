@@ -1,61 +1,46 @@
 """
-tool_schema.py
---------------
-Defines the MCP-compatible tool specification for GlassBox-AutoML.
-
-IronClaw agents discover tools through this schema.  When a user says
-"Build a model to predict 'Survived' from this CSV", the agent matches
-the intent and calls `autofit` with the appropriate arguments.
-
-MCP tool spec reference:
-  https://spec.modelcontextprotocol.io/specification/server/tools/
+tool_schema.py — GlassBox MCP server
 """
 
-# ── Tool definition (MCP-compatible JSON schema) ─────────────────────────────
+import os
+import sys
+import asyncio
+import json
+
+AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 AUTOFIT_TOOL = {
     "name": "AutoFit",
     "description": (
         "Automated end-to-end machine-learning pipeline. "
-        "Given a CSV file path and a target column name, GlassBox will: "
-        "(1) profile and clean the data, "
-        "(2) search for the best model and hyperparameters, "
-        "(3) evaluate on a held-out fold, and "
-        "(4) return a structured JSON report with the best model, metrics, "
-        "top features, and a plain-English explanation."
+        "Pass ONLY the filename (e.g. 'titanic_dataset.csv'), never a full path. "
+        "The tool automatically finds the file in the agent/ folder. "
+        "Returns a JSON report with best model, metrics, and top features."
     ),
     "inputSchema": {
         "type": "object",
         "properties": {
             "csv_path": {
                 "type": "string",
-                "description": "Absolute or relative path to the input CSV file.",
+                "description": "Filename only, e.g. 'titanic_dataset.csv'. Do NOT include any folder path.",
             },
             "target_col": {
                 "type": "string",
-                "description": "Name of the column the model should predict.",
+                "description": "Name of the column to predict.",
             },
             "task_type": {
                 "type": "string",
                 "enum": ["classification", "regression", "auto"],
                 "default": "auto",
-                "description": (
-                    "Whether this is a classification or regression problem. "
-                    "Use 'auto' to let GlassBox decide from the target column."
-                ),
             },
             "time_budget": {
                 "type": "integer",
                 "default": 60,
-                "description": (
-                    "Maximum seconds allowed for hyperparameter search. "
-                    "Must be less than 120 to satisfy the benchmark constraint."
-                ),
+                "description": "Max seconds for search. Must be under 120.",
             },
             "cv_folds": {
                 "type": "integer",
                 "default": 5,
-                "description": "Number of K-Fold cross-validation folds.",
             },
         },
         "required": ["csv_path", "target_col"],
@@ -63,58 +48,42 @@ AUTOFIT_TOOL = {
 }
 
 
-# ── IronClaw registration helper ─────────────────────────────────────────────
-
-def register_with_ironclaw(agent):
+def _resolve_csv(csv_input: str) -> str:
     """
-    Register the AutoFit tool with an IronClaw agent instance.
+    Robustly resolve a CSV path to an absolute path in AGENT_DIR.
 
-    Usage
-    -----
-    from agent.tool_schema import register_with_ironclaw
-    register_with_ironclaw(my_ironclaw_agent)
+    Handles all Windows escaping variants IronClaw may produce:
+      - quadruple backslashes:  C:\\\\GlassBox\\\\agent\\\\file.csv
+      - double backslashes:     C:\\GlassBox\\agent\\file.csv
+      - single backslashes:     C:\GlassBox\agent\file.csv
+      - forward slashes:        C:/GlassBox/agent/file.csv
+      - bare filename:          file.csv
 
-    The agent must expose a `.register_tool(schema, handler)` method.
+    Always returns:  AGENT_DIR\filename.csv
     """
-    from .autofit import autofit
+    # Step 1: decode any double-escaped backslashes
+    cleaned = csv_input.replace('\\\\', '\\')
 
-    def _handler(csv_path: str, target_col: str,
-                 task_type: str = "auto",
-                 time_budget: int = 60,
-                 cv_folds: int = 5) -> dict:
-        return autofit(
-            csv_path=csv_path,
-            target_col=target_col,
-            task_type=task_type,
-            time_budget=time_budget,
-            cv_folds=cv_folds,
-        )
+    # Step 2: normalise all separators to forward slash
+    cleaned = cleaned.replace('\\', '/')
 
-    agent.register_tool(AUTOFIT_TOOL, _handler)
-    print(f"[GlassBox] AutoFit tool registered with IronClaw agent.")
+    # Step 3: extract just the filename — ignore any directory component
+    filename = cleaned.split('/')[-1].strip()
 
+    if not filename:
+        filename = csv_input.strip()  # last resort fallback
 
-# ── MCP server (stdio transport) ─────────────────────────────────────────────
-# Run this file directly to expose GlassBox as a standalone MCP server:
-#   python -m agent.tool_schema
-#
-# The MCP client (e.g. Claude Desktop, IronClaw) connects over stdio.
+    # Step 4: build the final path inside AGENT_DIR
+    return os.path.join(AGENT_DIR, filename)
+
 
 def _run_mcp_server():
-    """
-    Minimal MCP server using the official `mcp` Python SDK.
-    Install: pip install mcp
-    """
     try:
         from mcp.server import Server
         from mcp.server.stdio import stdio_server
         from mcp.types import Tool, TextContent
-        import asyncio
-        import json
     except ImportError:
-        raise ImportError(
-            "MCP SDK not installed. Run: pip install mcp"
-        )
+        raise ImportError("Run: pip install mcp")
 
     from .autofit import autofit
 
@@ -128,12 +97,25 @@ def _run_mcp_server():
     async def call_tool(name: str, arguments: dict):
         if name != "AutoFit":
             raise ValueError(f"Unknown tool: {name}")
-        import os
-        PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(PROJECT_DIR)
-        csv_path = arguments.get("csv_path", "")
-        arguments["csv_path"] = os.path.join(PROJECT_DIR, os.path.basename(csv_path))
-        result = autofit(**arguments)
+
+        csv_input = arguments.get("csv_path", "")
+        csv_path  = _resolve_csv(csv_input)
+
+        print(f"[GlassBox] csv_input  = {repr(csv_input)}", file=sys.stderr, flush=True)
+        print(f"[GlassBox] csv_path   = {repr(csv_path)}",  file=sys.stderr, flush=True)
+
+        if not os.path.isfile(csv_path):
+            available = [f for f in os.listdir(AGENT_DIR) if f.endswith(".csv")]
+            result = {
+                "status": "error",
+                "error": f"File not found: {csv_path}",
+                "available_csv_files": available,
+                "hint": f"Pass only the filename, e.g. '{available[0] if available else 'data.csv'}'"
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        kwargs = {k: v for k, v in arguments.items() if k != "csv_path"}
+        result  = autofit(csv_path=csv_path, **kwargs)
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
     async def main():

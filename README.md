@@ -1,3 +1,9 @@
+# Team : 
+Hiba Ouhmad
+Ghita Bellamine
+Khadija Lekbiri
+Rhita Rhallami 
+
 # 🧠 GlassBox AutoML Agent
 
 > **Make AutoML understandable, not just powerful.**

@@ -1,145 +1,266 @@
-# 🧠 GlassBox AutoML Agent (AutoFit Engine)
+# 🧠 GlassBox AutoML Agent
 
-## 📌 Overview
+> **Make AutoML understandable, not just powerful.**
 
-**GlassBox** is a lightweight, explainable AutoML framework that automatically builds, trains, and evaluates machine learning models from a dataset — while keeping every step transparent.
+GlassBox is a lightweight, explainable AutoML framework that automatically builds, trains, and evaluates machine learning models from a CSV dataset — while keeping every step fully transparent.
 
-Unlike traditional *black-box* AutoML systems, GlassBox follows a **glass-box approach**, allowing users to understand:
+Unlike traditional *black-box* AutoML systems, GlassBox follows a **glass-box approach**, allowing users and agents to understand:
 
-* ✅ What model was selected
-* ✅ Why it was selected
-* ✅ Which features influence predictions
-
-It is also designed for seamless integration into AI agent workflows (e.g., **IronClaw Agent**).
+- ✅ What model was selected and why
+- ✅ Which features drive predictions
+- ✅ Every transformation applied to the data
 
 ---
 
 ## ⚙️ Features
 
-* 📊 **Automated Exploratory Data Analysis (EDA)**
-* 🧹 **Data cleaning & preprocessing**
-* 🤖 **Automatic model selection** (classification & regression)
-* 📈 **Model evaluation metrics**
-* 🔍 **Feature importance explanations**
-* 📦 **Structured JSON output** for APIs & agents
-* 🧩 **Agent-ready architecture** (IronClaw compatible)
+- 📊 **Automated Exploratory Data Analysis (EDA)** — column profiling, outlier detection, correlation
+- 🧹 **Data cleaning & preprocessing** — imputation, scaling, encoding
+- 🤖 **Automatic model selection** — classification & regression, multiple algorithms
+- 🔍 **Hyperparameter optimization** — Grid Search and Random Search with time budget
+- 📈 **Honest evaluation** — K-Fold Cross-Validation on every configuration
+- 📦 **Structured JSON output** — ready for APIs, agents, and dashboards
+- 🧩 **Agent-ready architecture** — IronClaw (NEAR AI) compatible via MCP
 
 ---
 
 ## 🏗️ Project Structure
 
 ```
-AI-project/
-├── agent.py             # IronClaw agent integration
-├── test_run.py          # Script to test AutoFit locally
-├── data/                # Example datasets
-└── README.md
+GlassBox-AutoML-Agent/
+├── run_server.py
+├── run_glassbox.bat
+├── ironclaw_mcp_config.json
+├── IRONCLAW_DEPLOY.md
+├── SKILL.md
+├── README.md
+├── requirements.txt
+├── benchmark.py
+├── test.py
+├── test_mcp_client.py
+├── wasm_audit.py
+├── wasm_test.py
+├── titanic_dataset.csv
+├── agent/
+│   ├── __init__.py
+│   ├── autofit.py
+│   ├── ironclaw_integration.py
+│   ├── report.py
+│   ├── tool_schema.py
+│   └── titanic_dataset.csv
+├── core/
+├── eda/
+├── Models/
+├── Optimization/
+└── Preprocessing/
+
 ```
 
 ---
 
 ## 🚀 How It Works
 
-GlassBox follows a fully automated pipeline:
+GlassBox exposes its full pipeline as a single MCP tool called **AutoFit**. Any MCP-compatible agent (IronClaw, Claude Desktop) can call it by name. The pipeline runs automatically:
 
 ```
-Input CSV
-   ↓
-EDA (Data Profiling)
-   ↓
-Data Cleaning (missing values, encoding, scaling)
-   ↓
-Model Selection
-   ↓
-Training & Evaluation
-   ↓
-Feature Importance Extraction
-   ↓
-JSON Output
+User natural language request
+         ↓
+IronClaw matches intent → activates GlassBox skill (SKILL.md)
+         ↓
+Calls AutoFit MCP tool via stdio transport
+         ↓
+run_server.py spawned as subprocess
+         ↓
+┌─────────────────────────────────┐
+│  EDA       → column profiling   │
+│  Imputer   → fill missing data  │
+│  Scaler    → normalize features │
+│  Encoder   → handle categories  │
+│  Search    → Grid / Random CV   │
+│  Evaluate  → metrics on holdout │
+└─────────────────────────────────┘
+         ↓
+JSON report returned over stdout
+         ↓
+Agent explains results in plain English
 ```
 
 ---
 
 ## 🔧 Setup Guide
 
-### 1️⃣ Install Dependencies
+### 1️⃣ Prerequisites
 
-Make sure you have **Python 3.10+** installed.
+- Python 3.11+
+- IronClaw v0.26.0+
+- pip
+
+### 2️⃣ Install Python Dependencies
 
 ```bash
+cd GlassBox-AutoML-Agent
 pip install -r requirements.txt
 ```
 
----
+### 3️⃣ Test the MCP Server Standalone
 
-### 2️⃣ Configure Claude Desktop Integration
+Before connecting any agent, verify the pipeline works end-to-end:
 
-Run the following commands in your terminal:
-
-```powershell
-New-Item -ItemType Directory -Path "$env:APPDATA\Claude"
-notepad "$env:APPDATA\Claude\claude_desktop_config.json"
+```bash
+python test_mcp_client.py
 ```
 
-Paste the following configuration into the file:
+Expected output:
+```
+📦 Available tools:
+  - AutoFit: Automated end-to-end machine-learning pipeline...
 
-```json
+🚀 Calling AutoFit...
+
+✅ RESULT:
 {
-  "mcpServers": {
-    "glassbox": {
-      "command": "PATH_TO_PYTHON_EXECUTABLE",
-      "args": [
-        "PATH_TO_YOUR_PROJECT"
-      ]
-    }
-  },
-  "preferences": {
-    "coworkScheduledTasksEnabled": false,
-    "ccdScheduledTasksEnabled": false,
-    "coworkWebSearchEnabled": true,
-    "sidebarMode": "chat"
-  }
+  "status": "success",
+  "best_model": "LogisticRegression",
+  "metrics": { "accuracy": 0.727, "f1": 0.697 },
+  "benchmark_pass": true,
+  "pipeline_seconds": 15.3
 }
 ```
 
-🔁 Replace:
-
-* `PATH_TO_PYTHON_EXECUTABLE` → your Python installation path
-* `PATH_TO_YOUR_PROJECT` → your project directory
-
-Save the file.
+If this works, the ML pipeline is fully functional. The next steps connect it to IronClaw.
 
 ---
 
-### 3️⃣ Enable GlassBox Connector
+## 🤖 IronClaw Deployment
 
-1. Open **Claude Desktop**
-2. Go to: **File → Settings → Connectors**
-3. Find **GlassBox**
-4. Click **Configure**
-5. Enable **"Always allow AutoFit"**
+### 4️⃣ Install IronClaw
+
+**Windows:**
+Download the MSI from:
+```
+https://github.com/nearai/ironclaw/releases/download/ironclaw-v0.26.0/ironclaw-x86_64-pc-windows-msvc.msi
+```
+Run the installer, restart PowerShell, then verify:
+```powershell
+ironclaw --version
+```
+
+**macOS / Linux:**
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/nearai/ironclaw/releases/latest/download/ironclaw-installer.sh | sh
+```
+
+### 5️⃣ Configure the LLM Backend
+
+Edit `~/.ironclaw/.env` and add your preferred LLM provider.
+
+**Option A — Anthropic Claude (recommended, best tool-calling reliability):**
+```
+LLM_BACKEND=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+```
+Get an API key at https://console.anthropic.com
+
+**Option B — OpenRouter (free tier available):**
+```
+LLM_BACKEND=openai_compatible
+LLM_BASE_URL=https://openrouter.ai/api/v1
+LLM_API_KEY=sk-or-...
+LLM_MODEL=openrouter/free
+```
+Get a free key at https://openrouter.ai
+
+### 6️⃣ Register the MCP Server
+
+Edit `~/.ironclaw/mcp-servers.json`:
+
+```json
+{
+  "servers": [
+    {
+      "name": "glassbox",
+      "url": "",
+      "transport": {
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "ABSOLUTE_PATH_TO_PROJECT/run_server.py"
+        ],
+        "env": {
+          "GLASSBOX_PROJECT_PATH": "ABSOLUTE_PATH_TO_PROJECT",
+          "PYTHONUNBUFFERED": "1"
+        }
+      },
+      "enabled": true
+    }
+  ],
+  "schema_version": 0
+}
+```
+
+> ⚠️ **Windows users:** use double backslashes in paths: `C:\\GlassBox-AutoML-Agent\\run_server.py`
+> ⚠️ Use `python` not `python3` — `python3` does not exist on Windows.
+
+Verify the connection:
+```powershell
+ironclaw mcp test glassbox
+```
+Expected: `✓ glassbox connected (1 tool: AutoFit)`
+
+### 7️⃣ Install the GlassBox Skill
+
+```powershell
+# Windows
+mkdir "$env:USERPROFILE\.ironclaw\skills\glassbox-automl"
+copy "skills\glassbox-automl\SKILL.md" "$env:USERPROFILE\.ironclaw\skills\glassbox-automl\SKILL.md"
+```
+
+```bash
+# macOS / Linux
+mkdir -p ~/.ironclaw/skills/glassbox-automl
+cp skills/glassbox-automl/SKILL.md ~/.ironclaw/skills/glassbox-automl/SKILL.md
+```
+
+Verify:
+```bash
+ironclaw skills list
+# Expected: glassbox-automl  v1.0.0  Trusted
+```
+
+### 8️⃣ Disable Irrelevant Tools (Recommended)
+
+Prevents the LLM from calling wrong tools instead of AutoFit:
+```bash
+ironclaw tools disable google_drive
+ironclaw tools disable gmail
+ironclaw tools disable google_calendar
+ironclaw tools disable github
+```
+
+### 9️⃣ Launch IronClaw and Run AutoFit
+
+```bash
+cd GlassBox-AutoML-Agent
+ironclaw
+```
+
+Then type in the IronClaw chat:
+```
+Call glassbox_AutoFit with csv_path="titanic_dataset.csv", target_col="Survived", time_budget=10, cv_folds=2
+```
+
+Or naturally:
+```
+Build a model to predict whether a Titanic passenger survived.
+```
 
 ---
 
-### 4️⃣ Run AutoFit via Prompt
+## 📤 Output Format
 
-Use the following prompt inside Claude:
-
-```
-Use the GlassBox AutoFit tool with csv_path="your_dataset.csv" and target_col="your_target"
-```
-
-Example: (make sure your data file is in agent folder)
-
-```
-Use the GlassBox AutoFit tool with csv_path="titanic_dataset.csv" and target_col="Survived"
-```
-
----
-
-## 📤 Output Format (JSON)
-
-GlassBox returns a structured JSON response:
+GlassBox returns a structured JSON report:
 
 ```json
 {
@@ -151,69 +272,64 @@ GlassBox returns a structured JSON response:
     "epochs": 200
   },
   "metrics": {
-    "accuracy": 0.79,
-    "f1": 0.30,
-    "precision": 0.53,
-    "recall": 0.21
+    "accuracy": 0.727,
+    "f1": 0.697,
+    "precision": 0.604,
+    "recall": 0.843
   },
   "top_features": [
-    {
-      "feature": "PAY_0",
-      "importance": 0.1899
-    },
-    {
-      "feature": "PAY_3",
-      "importance": 0.0962
-    }
-  ]
+    { "feature": "Age",    "importance": 0.0063 },
+    { "feature": "Pclass", "importance": 0.0034 }
+  ],
+  "eda_summary": {
+    "n_rows": 891,
+    "n_cols": 11,
+    "outliers_flagged": 375,
+    "missing_filled": 3971
+  },
+  "pipeline_seconds": 15.3,
+  "benchmark_pass": true
 }
 ```
 
 ---
 
-## 🧠 Key Idea
+## ✅ Project Success Metrics
 
-GlassBox ensures **full transparency in machine learning**:
+| Metric | Target | Result |
+|--------|--------|--------|
+| Zero-dependency core | NumPy only | ✅ Achieved |
+| Benchmark accuracy | ≥ 90% of sklearn | ✅ 72.7% vs ~80% sklearn = 90.9% |
+| Pipeline time | < 120 seconds | ✅ ~15 seconds |
+| Agent integration | IronClaw MCP | ✅ Confirmed working |
 
-* 📌 No hidden decisions
-* 📌 Clear model reasoning
-* 📌 Interpretable feature importance
+---
 
-This makes it ideal for:
+## ⚠️ Known Limitations
 
-* Educational use 🎓
-* Explainable AI applications 🔍
-* Agent-based automation 🤖
+- **IronClaw 30s timeout:** IronClaw v0.26.0 hard-cuts tool calls at 30 seconds. Keep `time_budget ≤ 10` and `cv_folds = 2` to stay within this limit. This is an IronClaw limitation, not a GlassBox bug.
+- **LLM quality matters:** Small free models (llama3.2, llama3.1-8b) may not reliably call the AutoFit tool. Claude Haiku or a strong OpenRouter model is recommended for best results.
+- **CSV files must be in `agent/`:** Place your dataset in the `agent/` subfolder before calling AutoFit.
 
 ---
 
 ## 🔮 Future Improvements
 
-* 🔄 Hyperparameter optimization (Grid / Bayesian search)
-* 📊 Advanced visualization dashboards
-* ⚡ WASM execution for faster pipelines
-* 🧠 Deeper IronClaw Agent integration
+- WASM compilation for sandboxed execution inside IronClaw's secure TEE runtime
+- Bayesian hyperparameter search
+- Advanced visualization dashboards
+- Streaming progress updates over MCP
+- Support for multi-class classification and time-series data
 
----
 
-## 📄 License
 
-MIT License (or specify your license here)
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-
-* Open issues
-* Suggest improvements
-* Submit pull requests
-
----
-
-## ⭐ Final Note
+## 🧠 Key Idea
 
 GlassBox is built with one goal:
 
 > **Make AutoML understandable, not just powerful.**
+
+- 📌 No hidden decisions
+- 📌 Clear model reasoning
+- 📌 Interpretable feature importance
+- 📌 Full pipeline transparency — every step is inspectable
